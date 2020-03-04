@@ -1,6 +1,6 @@
 /**
- * v-lazy-image v1.3.1
- * (c) 2019 Alex Jover Morales <alexjovermorales@gmail.com>
+ * v-lazy-image v1.4.0
+ * (c) 2020 Alex Jover Morales <alexjovermorales@gmail.com>
  * @license MIT
  */
 
@@ -16,7 +16,7 @@ var VLazyImageComponent = {
     },
     srcPlaceholder: {
       type: String,
-      default: ""
+      default: "//:0"
     },
     srcset: {
       type: String
@@ -34,7 +34,7 @@ var VLazyImageComponent = {
   data: function () { return ({ observer: null, intersected: false, loaded: false }); },
   computed: {
     srcImage: function srcImage() {
-      return this.intersected ? this.src : this.srcPlaceholder;
+      return this.intersected && this.src ? this.src : this.srcPlaceholder;
     },
     srcsetImage: function srcsetImage() {
       return this.intersected && this.srcset ? this.srcset : false;
@@ -46,6 +46,9 @@ var VLazyImageComponent = {
         this.loaded = true;
         this.$emit("load");
       }
+    },
+    error: function error() {
+      this.$emit("error", this.$el);
     }
   },
   render: function render(h) {
@@ -59,10 +62,14 @@ var VLazyImageComponent = {
         "v-lazy-image": true,
         "v-lazy-image-loaded": this.loaded
       },
-      on: { load: this.load }
+      on: { load: this.load, error: this.error }
     });
     if (this.usePicture) {
-      return h("picture", { on: { load: this.load } }, this.intersected ? [ this.$slots.default, img ] : [] );
+      return h(
+        "picture",
+        { on: { load: this.load } },
+        this.intersected ? [this.$slots.default, img] : [img]
+      );
     } else {
       return img;
     }
@@ -80,14 +87,12 @@ var VLazyImageComponent = {
         }
       }, this.intersectionOptions);
       this.observer.observe(this.$el);
-    } else {
-      console.error(
-        "v-lazy-image: this browser doesn't support IntersectionObserver. Please use this polyfill to make it work https://github.com/w3c/IntersectionObserver/tree/master/polyfill."
-      );
     }
   },
   destroyed: function destroyed() {
-    this.observer.disconnect();
+    if ("IntersectionObserver" in window) {
+      this.observer.disconnect();
+    }
   }
 };
 
